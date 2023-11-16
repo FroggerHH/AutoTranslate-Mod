@@ -1,0 +1,4 @@
+AutoTranslate_none: "none"
+item_desc_ItemsAutoTranslate: "Восстанавливает прочность всех предметов роме брони на {repairPercent}%."
+item_desc_ArmorAutoTranslate: "Восстанавливает прочность брони на {repairPercent}%."
+noItemsToRepair: "Нет предметов для ремонта"

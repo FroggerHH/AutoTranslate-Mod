@@ -1,0 +1,4 @@
+AutoTranslate_none: "none"
+item_desc_ItemsAutoTranslate: "Restores durability of all items except armor on {repairPercent}%."
+item_desc_ArmorAutoTranslate: "Restores durability of armor on {repairPercent}%."
+noItemsToRepair: "No items to repair"
