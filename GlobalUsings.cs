@@ -30,6 +30,7 @@ global using JetBrains.Annotations;
 global using TMPro;
 global using YamlDotNet.Serialization;
 global using YamlDotNet.Serialization.NamingConventions;
+global using static System.Diagnostics.Stopwatch;
 global using static ItemDrop.ItemData.ItemType;
 global using Component = UnityEngine.Component;
 global using CompressionLevel = System.IO.Compression.CompressionLevel;

@@ -1,18 +1,19 @@
 ﻿using AutoTranslate.Patch;
 using RavSoft.GoogleTranslator;
-using static System.Diagnostics.Stopwatch;
 
 namespace AutoTranslate;
 
 public static class Translations
 {
     private static Dictionary<string, Dictionary<string, string>> _all;
+    internal static Dictionary<string, string> originalKeys = new();
+
     public static Dictionary<string, Dictionary<string, string>> GetAll()
     {
         if (_all == null)
         {
             _all = new Dictionary<string, Dictionary<string, string>>();
-            
+
             _all.Add("English", new Dictionary<string, string>());
             _all.Add("Swedish", new Dictionary<string, string>());
             _all.Add("French", new Dictionary<string, string>());
@@ -52,9 +53,12 @@ public static class Translations
         return _all;
     }
 
-    public static void Add(string key, string value)
+    public static void Add(string key, string value, string originalKey)
     {
+        if (string.Empty.Equals(key)) return;
         var dictionary = GetAll()["English"];
+        originalKeys.Remove(key);
+        originalKeys.Add(key, originalKey);
         if (dictionary.ContainsKey(key))
             //DebugError($"Key {key} already exists");
             return;
@@ -98,6 +102,8 @@ public static class Translations
     public static void Update()
     {
         var watch = StartNew();
+        var counter = 0;
+        var loadedFromFileCounter = 0;
         DebugWarning("Starting localizing mods. Be patient, it would take a while. Like even a couple of minutes.",
             false);
 
@@ -107,19 +113,33 @@ public static class Translations
 
         foreach (var pair in translations.Value)
         {
-            string localizedWord;
+            var localizedWord = string.Empty;
             var key = pair.Key;
             if (selectedTranslation.TryGetValue(key, out var savedWord))
             {
                 localizedWord = savedWord;
+                loadedFromFileCounter++;
             } else
             {
-                localizedWord = LocalizeWord(pair.Value, key, selectedLanguage);
-                if (GoogleTranslator.Instance.Error != null)
-                    DebugError($"Translation error: {GoogleTranslator.Instance.Error.Message}");
+                var flag = true;
+                if (originalKeys.TryGetValue(key, out var originalKey))
+                    if (Localization.instance.m_translations.ContainsKey(originalKey))
+                    {
+                        localizedWord = Localization.instance.Localize(originalKey);
+                        flag = false;
+                    }
 
-                if (showTranslationLogs.Value)
-                    Debug($"Translated key='{key}', word='{pair.Value}', localized='{localizedWord}'");
+                if (flag)
+                {
+                    localizedWord = LocalizeWord(pair.Value, key, selectedLanguage);
+                    if (localizedWord.Equals("en")) continue;
+                    if (GoogleTranslator.Instance.Error != null)
+                        DebugError($"Translation error: {GoogleTranslator.Instance.Error.Message}");
+
+                    if (showTranslationLogs.Value)
+                        Debug($"Translated key='{key}', word='{pair.Value}', localized='{localizedWord}'");
+                    counter++;
+                }
             }
 
             Localization.instance.AddWord(key, localizedWord);
@@ -129,7 +149,8 @@ public static class Translations
 
         SaveToFile();
         watch.Stop();
-        Debug($"Done localizing in {watch.Elapsed}");
+        Debug($"Done localizing in {watch.Elapsed}. Translated {counter} words. "
+              + $"Loaded from file {loadedFromFileCounter} words.");
     }
 
     private static string LocalizeWord(string word, string key, string language)
@@ -139,5 +160,5 @@ public static class Translations
         return localizedWord;
     }
 
-    public static string CreateKey(Component obj) { return $"{obj.GetPrefabName()}___{ModName}"; }
+    public static string CreateKey(Object obj) { return $"{obj.GetPrefabName()}___{ModName}"; }
 }

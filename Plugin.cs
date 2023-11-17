@@ -7,7 +7,7 @@ public class Plugin : BaseUnityPlugin
 {
     private const string
         ModName = "AutoTranslate",
-        ModVersion = "1.0.0",
+        ModVersion = "1.1.0",
         ModAuthor = "Frogger",
         ModGUID = $"com.{ModAuthor}.{ModName}";
 
