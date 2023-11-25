@@ -15,7 +15,7 @@ public class RegisterToLocalize
     public static List<StatusEffect> seNoStartMessage = new();
     public static List<StatusEffect> seNoStopMessage = new();
     public static List<StatusEffect> seNoRepeatMessage = new();
-    public static Localization checkLocalization1;
+    public static Localization checkLocalization1_Russian;
     public static Localization checkLocalization2;
     public static Localization english;
 
@@ -32,10 +32,10 @@ public class RegisterToLocalize
             english.SetupLanguage("English");
         }
 
-        if (checkLocalization1 == null)
+        if (checkLocalization1_Russian == null)
         {
-            checkLocalization1 = new Localization();
-            checkLocalization1.SetupLanguage("Russian");
+            checkLocalization1_Russian = new Localization();
+            checkLocalization1_Russian.SetupLanguage("Russian");
         }
 
         if (checkLocalization2 == null)
@@ -55,7 +55,7 @@ public class RegisterToLocalize
         creatures = ZNetScene.instance.m_prefabs.Select(x => x.GetComponent<Character>())
             .Where(x => x != null).Where(NoLocalization<Character>()).ToList();
         itemsNoName = ZNetScene.instance.m_prefabs.Select(x => x.GetComponent<ItemDrop>())
-            .Where(x => x != null).Where(NoLocalization<ItemDrop>(false)).ToList();
+            .Where(x => x != null).Where(NoLocalization<ItemDrop>()).ToList();
         itemsNoDescription = ZNetScene.instance.m_prefabs.Select(x => x.GetComponent<ItemDrop>())
             .Where(x => x != null).Where(NoLocalization<ItemDrop>(true)).ToList();
         seNoName = ObjectDB.instance.m_StatusEffects.Where(x => StrNoLocalization(x.m_name)).ToList();
@@ -100,35 +100,45 @@ public class RegisterToLocalize
         Translations.Update();
     }
 
-    private static Func<T, bool> NoLocalization<T>(bool isDescription = false) where T : Component
+    public static Func<T, bool> NoLocalization<T>(bool isDescription = false) where T : Component
     {
         return x =>
             StrNoLocalization(GetName(x, isDescription));
     }
 
-    private static bool StrNoLocalization(string name)
+    public static bool StrNoLocalization(string name)
     {
         if (!name.IsGood()) return false;
         if (string.Empty.Equals(Localization.instance.Localize(name))) return true;
         var noLocKey = !name.Contains('$');
-        var onlyEnglish = false;
+        if (noLocKey) return true;
+        var onlyEnglish = OnlyEnglish(name);
+        
+        return noLocKey || onlyEnglish;
+    }
+
+    public static bool OnlyEnglish(string name)
+    {
+        if(!name.Contains('$')) return false;
         var keyNoDollar = name.Replace("$", "");
-        if (!Localization.instance.m_translations.ContainsKey(keyNoDollar) &&
-            Localization.instance.GetSelectedLanguage() == "Russian"
-            && !checkLocalization1.m_translations.ContainsKey(keyNoDollar) &&
-            Localization.instance.GetSelectedLanguage() == "Swedish"
-            && !checkLocalization2.m_translations.ContainsKey(keyNoDollar)) onlyEnglish = true;
-        else
+        bool onlyEnglish = false;
+        if (!Localization.instance.m_translations.ContainsKey(keyNoDollar))
+        {
+            onlyEnglish = true;
+        } else
         {
             var selectedLanguage = Localization.instance.GetSelectedLanguage();
             var selectedTranslation = Localization.instance.Localize(name).ToLower();
-            if ((selectedLanguage != "Russian" && selectedLanguage != "Swedish" &&
-                 selectedTranslation.Equals(checkLocalization1.Localize(name).ToLower())) ||
-                selectedTranslation.Equals(checkLocalization2.Localize(name).ToLower()))
-                onlyEnglish = true;
+            if (
+                (selectedLanguage != "Russian"
+                 && selectedTranslation.Equals(checkLocalization1_Russian.Localize(name).ToLower()))
+                ||
+                (selectedLanguage != "Swedish"
+                 && selectedTranslation.Equals(checkLocalization2.Localize(name).ToLower()))
+            ) onlyEnglish = true;
         }
 
-        return noLocKey || onlyEnglish;
+        return onlyEnglish;
     }
 
     public static string GetName(Component x, bool isDescription = false)
@@ -151,7 +161,7 @@ public class RegisterToLocalize
         return GetOrigName(GetName(x, isDescription), x.GetPrefabName());
     }
 
-    private static string GetOrigName(string name, string prefabName)
+    public static string GetOrigName(string name, string prefabName)
     {
         if (!name.IsGood()) return string.Empty;
         if (english.m_translations.ContainsKey(name.Replace("$", "")))

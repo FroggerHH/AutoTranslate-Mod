@@ -1,4 +1,6 @@
-﻿namespace AutoTranslate.Patch;
+﻿using System.Reflection;
+
+namespace AutoTranslate.Patch;
 
 [HarmonyPatch]
 public static class ApplyLocalization
@@ -31,5 +33,8 @@ public static class ApplyLocalization
             effect.m_stopMessage = $"${Translations.CreateKey(effect)}_stopMessage";
         foreach (var effect in RegisterToLocalize.seNoRepeatMessage)
             effect.m_repeatMessage = $"${Translations.CreateKey(effect)}_repeatMessage";
+
+        foreach (var data in RegisterCustomHover.hoverableDatas)
+            data.field.SetValue(data.component, $"${Translations.CreateKey(data.prefab)}__field_{data.field.Name}");
     }
 }

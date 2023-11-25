@@ -48,7 +48,12 @@ public class GoogleTranslator
                 LanguageEnumToIdentifier(targetLanguage),
                 // HttpUtility.UrlEncode(sourceText));
                 Uri.EscapeDataString(sourceText));
-            var outputFile = Path.GetTempFileName();
+            // var outputFile = Path.GetTempFileName();
+            var uniqueIdentifier = Guid.NewGuid().ToString();
+            var outputFile = Path.Combine(Path.GetTempPath(), $"Translation_{uniqueIdentifier}.txt");
+            var fs = new FileStream(outputFile, FileMode.CreateNew);
+            fs.Dispose();
+
             using (var wc = new WebClient())
             {
                 wc.Headers.Add("user-agent",
@@ -235,6 +240,8 @@ public class GoogleTranslator
             _languageModeMap.Add("Norwegian", "no");
             _languageModeMap.Add("Persian", "fa");
             _languageModeMap.Add("Polish", "pl");
+            _languageModeMap.Add("Portuguese_European", "pt");
+            _languageModeMap.Add("Portuguese_Brazilian", "pt");
             _languageModeMap.Add("Portuguese", "pt");
             _languageModeMap.Add("Romanian", "ro");
             _languageModeMap.Add("Russian", "ru");

@@ -7,6 +7,12 @@ public static class Translations
 {
     private static Dictionary<string, Dictionary<string, string>> _all;
     internal static Dictionary<string, string> originalKeys = new();
+    internal static GameObject menuRoot;
+    internal static TextMeshProUGUI menuText;
+
+    private static int translateCounter;
+
+    private static string textMessageTemplate;
 
     public static Dictionary<string, Dictionary<string, string>> GetAll()
     {
@@ -59,10 +65,7 @@ public static class Translations
         var dictionary = GetAll()["English"];
         originalKeys.Remove(key);
         originalKeys.Add(key, originalKey);
-        if (dictionary.ContainsKey(key))
-            //DebugError($"Key {key} already exists");
-            return;
-
+        dictionary.Remove(key);
         dictionary.Add(key, value);
     }
 
@@ -99,58 +102,89 @@ public static class Translations
         }
     }
 
-    public static void Update()
+    public static async void Update()
     {
         var watch = StartNew();
-        var counter = 0;
-        var loadedFromFileCounter = 0;
-        DebugWarning("Starting localizing mods. Be patient, it would take a while. Like even a couple of minutes.",
+        translateCounter = 1;
+        var updateProgressCounter = 0;
+        var showMenuCounter = 0;
+        DebugWarning("Starting localizing mods." + " Be patient, it would take a while. Like even a couple of minutes.",
             false);
 
         var selectedLanguage = Localization.instance.GetSelectedLanguage();
         var translations = GetAll().First();
         var selectedTranslation = GetAll()[selectedLanguage]!;
 
+        UpdateMenuText(1, translations.Value.Count);
+        await Task.Delay(100);
         foreach (var pair in translations.Value)
         {
-            var localizedWord = string.Empty;
-            var key = pair.Key;
-            if (selectedTranslation.TryGetValue(key, out var savedWord))
+            updateProgressCounter++;
+            showMenuCounter++;
+            if (updateProgressCounter >= 15)
             {
-                localizedWord = savedWord;
-                loadedFromFileCounter++;
-            } else
-            {
-                var flag = true;
-                if (originalKeys.TryGetValue(key, out var originalKey))
-                    if (Localization.instance.m_translations.ContainsKey(originalKey))
-                    {
-                        localizedWord = Localization.instance.Localize(originalKey);
-                        flag = false;
-                    }
-
-                if (flag)
-                {
-                    localizedWord = LocalizeWord(pair.Value, key, selectedLanguage);
-                    if (localizedWord.Equals("en")) continue;
-                    if (GoogleTranslator.Instance.Error != null)
-                        DebugError($"Translation error: {GoogleTranslator.Instance.Error.Message}");
-
-                    if (showTranslationLogs.Value)
-                        Debug($"Translated key='{key}', word='{pair.Value}', localized='{localizedWord}'");
-                    counter++;
-                }
+                UpdateMenuText(translateCounter, translations.Value.Count);
+                updateProgressCounter = 0;
             }
 
-            Localization.instance.AddWord(key, localizedWord);
+            if (showMenuCounter >= 100)
+            {
+                await Task.Delay(50);
+                showMenuCounter = 0;
+            }
+
+            ProgressWord(pair, selectedTranslation, selectedLanguage);
         }
 
         ApplyLocalization.Apply();
-
         SaveToFile();
         watch.Stop();
-        Debug($"Done localizing in {watch.Elapsed}. Translated {counter} words. "
-              + $"Loaded from file {loadedFromFileCounter} words.");
+        Debug($"Done localizing in {watch.Elapsed}. Translated {translateCounter} words. ");
+        translateCounter = 0;
+        UpdateMenuText(0, 0);
+    }
+
+    private static void ProgressWord(KeyValuePair<string, string> pair, Dictionary<string, string> selectedTranslation,
+        string selectedLanguage)
+    {
+        string localizedWord;
+        var key = pair.Key;
+        if (selectedTranslation.TryGetValue(key, out var savedWord))
+        {
+            localizedWord = savedWord;
+        } else
+        {
+            if (originalKeys.TryGetValue(key, out var originalKey)
+                && Localization.instance.m_translations.ContainsKey(originalKey))
+            {
+                localizedWord = Localization.instance.Localize(originalKey);
+            } else
+            {
+                localizedWord = LocalizeWord(pair.Value, key, selectedLanguage);
+                if (localizedWord.Equals("en")) localizedWord = pair.Value;
+                if (GoogleTranslator.Instance.Error != null)
+                    DebugError($"Translation error: {GoogleTranslator.Instance.Error.Message}");
+
+                if (showTranslationLogs.Value)
+                    Debug($"Translated key='{key}', word='{pair.Value}', localized='{localizedWord}'");
+            }
+        }
+
+        Localization.instance.AddWord(key, localizedWord);
+        translateCounter++;
+    }
+
+    internal static void UpdateMenuText(int doneCounter, int allCount)
+    {
+        if (!textMessageTemplate.IsGood())
+            textMessageTemplate = GoogleTranslator.Instance.Translate(
+                "Идёт перевод...\n Переведено {0}/{1} слов.", "Russian", Localization.instance.GetSelectedLanguage());
+
+        if (menuRoot != null)
+        {
+            menuRoot.SetActive(doneCounter > 0);
+            menuText.text = string.Format(textMessageTemplate, doneCounter, allCount);
+        }
     }
 
     private static string LocalizeWord(string word, string key, string language)
@@ -160,5 +194,5 @@ public static class Translations
         return localizedWord;
     }
 
-    public static string CreateKey(Object obj) { return $"{obj.GetPrefabName()}___{ModName}"; }
+    public static string CreateKey(Object obj) => $"{obj.GetPrefabName()}___{ModName}";
 }
