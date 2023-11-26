@@ -7,7 +7,7 @@ public class Plugin : BaseUnityPlugin
 {
     private const string
         ModName = "AutoTranslate",
-        ModVersion = "1.2.0",
+        ModVersion = "1.2.2",
         ModAuthor = "Frogger",
         ModGUID = $"com.{ModAuthor}.{ModName}";
 
@@ -23,8 +23,17 @@ public class Plugin : BaseUnityPlugin
 
         Localization.OnLanguageChange += () =>
         {
-            Translations.menuRoot.SetActive(true);
-            Translations.Update();
+            try
+            {
+                Translations.menuRoot.SetActive(true);
+                Translations.Update();
+            }
+            catch (Exception e)
+            {
+                DebugError($"Translation error: {e.Message}");
+            }
+
+            Translations.menuRoot.SetActive(false);
         };
     }
 }

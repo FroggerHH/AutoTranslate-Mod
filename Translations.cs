@@ -141,12 +141,12 @@ public static class Translations
             ProgressWord(pair, selectedTranslation, selectedLanguage);
         }
 
+        UpdateMenuText(0, 0);
         ApplyLocalization.Apply();
         SaveToFile();
         watch.Stop();
         Debug($"Done localizing in {watch.Elapsed}. Translated {translateCounter} words. ");
         translateCounter = 0;
-        UpdateMenuText(0, 0);
     }
 
     private static void ProgressWord(KeyValuePair<string, string> pair, Dictionary<string, string> selectedTranslation,
@@ -199,5 +199,19 @@ public static class Translations
         return localizedWord;
     }
 
-    public static string CreateKey(Object obj) => $"{obj.GetPrefabName()}___{ModName}";
+    public static string CreateKey(Object obj)
+    {
+        if (!obj) return default;
+        string objName = "error";
+        try
+        {
+            objName = obj.ToString();
+            return $"{obj.GetPrefabName()}___{ModName}";
+        }
+        catch (Exception e)
+        {
+            DebugError($"Error creating key for object '{objName}'");
+            return default;
+        }
+    }
 }
