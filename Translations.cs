@@ -63,8 +63,12 @@ public static class Translations
     {
         if (string.Empty.Equals(key)) return;
         var dictionary = GetAll()["English"];
-        originalKeys.Remove(key);
-        originalKeys.Add(key, originalKey);
+        if (originalKey.IsGood())
+        {
+            originalKeys.Remove(key);
+            originalKeys.Add(key, originalKey);
+        }
+
         dictionary.Remove(key);
         dictionary.Add(key, value);
     }
@@ -108,6 +112,7 @@ public static class Translations
         translateCounter = 1;
         var updateProgressCounter = 0;
         var showMenuCounter = 0;
+        textMessageTemplate = default;
         DebugWarning("Starting localizing mods." + " Be patient, it would take a while. Like even a couple of minutes.",
             false);
 

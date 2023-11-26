@@ -36,5 +36,13 @@ public static class ApplyLocalization
 
         foreach (var data in RegisterCustomHover.hoverableDatas)
             data.field.SetValue(data.component, $"${Translations.CreateKey(data.prefab)}__field_{data.field.Name}");
+
+        foreach (var pair in RegisterConsoleCommands.commands)
+        {
+            var command = pair.Value;
+            var commandName = pair.Key;
+            command.Description =
+                $"${commandName}___{ModName}_ConsoleCommand".Localize();
+        }
     }
 }

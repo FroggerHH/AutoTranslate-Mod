@@ -37,3 +37,4 @@ global using CompressionLevel = System.IO.Compression.CompressionLevel;
 global using static MessageHud.MessageType;
 global using static Player;
 global using static Player.PlacementStatus;
+global using static Terminal;
