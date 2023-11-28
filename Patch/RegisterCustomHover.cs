@@ -3,7 +3,6 @@ using static AutoTranslate.Patch.RegisterToLocalize;
 
 namespace AutoTranslate.Patch;
 
-[HarmonyPatch]
 public class RegisterCustomHover
 {
     public static List<HoverableData> hoverableDatas = new();
@@ -11,9 +10,7 @@ public class RegisterCustomHover
     [UsedImplicitly]
     private static List<HoverableData> test = new();
 
-    [HarmonyPatch(typeof(ZNetScene), nameof(ZNetScene.Awake))] [HarmonyPostfix] [HarmonyWrapSafe]
-    [HarmonyPriority(int.MinValue)]
-    private static void Patch()
+    internal static void Patch()
     {
         List<HoverableData> noFilter = new();
         foreach (var prefab in ZNetScene.instance.m_prefabs)
@@ -47,7 +44,7 @@ public class RegisterCustomHover
         {
             var value = x.field?.GetValue(x.component)?.ToString();
             if (value is null) return false;
-            return StrNoLocalization(value);
+            return RegisterToLocalize.OnlyEnglish(value);
         }).ToList();
 
 

@@ -22,7 +22,7 @@ public class RegisterToLocalize
     public static List<StatusEffect> seNoStopMessage = new();
     public static List<StatusEffect> seNoRepeatMessage = new();
 
-    internal static void Init()
+    private static void Init()
     {
         english = new Localization();
         english.SetupLanguage("English");
@@ -39,6 +39,7 @@ public class RegisterToLocalize
     private static void Patch()
     {
         Translations.LoadFromFile();
+        Init();
 
         var onlyEnglishKey = Localization.instance.m_translations.Where(x => OnlyEnglish(x.Key));
         var selectedLanguage = Localization.instance.GetSelectedLanguage();
@@ -99,8 +100,9 @@ public class RegisterToLocalize
         foreach (var effect in seNoRepeatMessage)
             Translations.Add(Translations.CreateKey(effect) + "_repeatMessage",
                 GetOrigName(effect.m_repeatMessage, effect.name), effect.m_repeatMessage);
-
-
+        
+        RegisterCustomHover.Patch();
+        
         Translations.Update();
     }
 

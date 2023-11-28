@@ -8,7 +8,7 @@ public class Plugin : BaseUnityPlugin
 {
     private const string
         ModName = "AutoTranslate",
-        ModVersion = "1.3.1",
+        ModVersion = "1.3.5",
         ModAuthor = "Frogger",
         ModGUID = $"com.{ModAuthor}.{ModName}";
 
@@ -21,7 +21,6 @@ public class Plugin : BaseUnityPlugin
     {
         CreateMod(this, ModName, ModAuthor, ModVersion, ModGUID);
         showTranslationLogs = config("Debug", "ShowTranslationLogs", false, "Show how translations are generated.");
-        RegisterToLocalize.Init();
 
         Localization.OnLanguageChange += () =>
         {
