@@ -18,7 +18,6 @@ public class RegisterConsoleCommands
             if (!RegisterToLocalize.StrNoLocalization(command.Description)) continue;
             commands.Add(commandName, command);
             var key = $"{commandName}___{ModName}_ConsoleCommand";
-            Debug($"Added command: {commandName}. key: {key}");
             Translations.Add(key, command.Description, "");
         }
     }
@@ -27,9 +26,6 @@ public class RegisterConsoleCommands
     private static class PatchAddString
     {
         [HarmonyPatch(nameof(Terminal.AddString), typeof(string))]
-        private static void Prefix1(string text)
-        {
-            
-        }
+        private static void Prefix1(string text) { }
     }
 }

@@ -6,13 +6,14 @@ namespace AutoTranslate;
 public static class Translations
 {
     private static Dictionary<string, Dictionary<string, string>> _all;
-    internal static Dictionary<string, string> originalKeys = new();
     internal static GameObject menuRoot;
     internal static TextMeshProUGUI menuText;
 
     private static int translateCounter;
-
     private static string textMessageTemplate;
+
+    public static bool addingWord = false;
+    internal static Dictionary<string, string> originalKeys = new();
 
     public static Dictionary<string, Dictionary<string, string>> GetAll()
     {
@@ -54,6 +55,9 @@ public static class Translations
             _all.Add("Serbian", new Dictionary<string, string>());
             _all.Add("Ukrainian", new Dictionary<string, string>());
             _all.Add("Latvian", new Dictionary<string, string>());
+
+            _all.Add("Portuguese_European", new Dictionary<string, string>());
+            _all.Add("Portuguese_Brazilian", new Dictionary<string, string>());
         }
 
         return _all;
@@ -61,7 +65,7 @@ public static class Translations
 
     public static void Add(string key, string value, string originalKey)
     {
-        if (string.Empty.Equals(key)) return;
+        if (!key.IsGood()) return;
         var dictionary = GetAll()["English"];
         if (originalKey.IsGood())
         {
@@ -112,6 +116,7 @@ public static class Translations
         translateCounter = 1;
         var updateProgressCounter = 0;
         var showMenuCounter = 0;
+        var saveProgressToFileCounter = 0;
         textMessageTemplate = default;
         DebugWarning("Starting localizing mods." + " Be patient, it would take a while. Like even a couple of minutes.",
             false);
@@ -126,6 +131,7 @@ public static class Translations
         {
             updateProgressCounter++;
             showMenuCounter++;
+            saveProgressToFileCounter++;
             if (updateProgressCounter >= 15)
             {
                 UpdateMenuText(translateCounter, translations.Value.Count);
@@ -136,6 +142,12 @@ public static class Translations
             {
                 await Task.Delay(50);
                 showMenuCounter = 0;
+            }
+
+            if (saveProgressToFileCounter >= 300)
+            {
+                SaveToFile();
+                saveProgressToFileCounter = 0;
             }
 
             ProgressWord(pair, selectedTranslation, selectedLanguage);
@@ -152,38 +164,46 @@ public static class Translations
     private static void ProgressWord(KeyValuePair<string, string> pair, Dictionary<string, string> selectedTranslation,
         string selectedLanguage)
     {
-        string localizedWord;
-        var key = pair.Key;
-        if (selectedTranslation.TryGetValue(key, out var savedWord))
+        try
         {
-            localizedWord = savedWord;
-        } else
-        {
-            if (originalKeys.TryGetValue(key, out var originalKey)
-                && Localization.instance.m_translations.ContainsKey(originalKey))
+            addingWord = true;
+            string localizedWord;
+            var key = pair.Key;
+            if (selectedTranslation.TryGetValue(key, out var savedWord))
+                localizedWord = savedWord;
+            else
             {
-                localizedWord = Localization.instance.Localize(originalKey);
-            } else
-            {
-                localizedWord = LocalizeWord(pair.Value, key, selectedLanguage);
-                if (localizedWord.Equals("en")) localizedWord = pair.Value;
-                if (GoogleTranslator.Instance.Error != null)
-                    DebugError($"Translation error: {GoogleTranslator.Instance.Error.Message}");
+                if (originalKeys.TryGetValue(key, out var originalKey)
+                    && Localization.instance.m_translations.ContainsKey(originalKey))
+                {
+                    localizedWord = Localization.instance.Localize(originalKey);
+                } else
+                {
+                    localizedWord = LocalizeWord(pair.Value, key, selectedLanguage);
+                    if (localizedWord == string.Empty) return;
+                    if (GoogleTranslator.Instance.Error != null)
+                        DebugError($"Translation error: {GoogleTranslator.Instance.Error.Message}");
 
-                if (showTranslationLogs.Value)
-                    Debug($"Translated key='{key}', word='{pair.Value}', localized='{localizedWord}'");
+                    if (showTranslationLogs.Value)
+                        Debug($"Translated key='{key}', word='{pair.Value}', localized='{localizedWord}'");
+                }
             }
-        }
 
-        Localization.instance.AddWord(key, localizedWord);
-        translateCounter++;
+            Localization.instance.AddWord(key, localizedWord);
+            translateCounter++;
+        }
+        finally
+        {
+            addingWord = false;
+        }
     }
 
     internal static void UpdateMenuText(int doneCounter, int allCount)
     {
         if (!textMessageTemplate.IsGood())
             textMessageTemplate = GoogleTranslator.Instance.Translate(
-                "Идёт перевод...\n Переведено {0}/{1} слов.", "Russian", Localization.instance.GetSelectedLanguage());
+                "The translation is in progress...\n Translated {0}/{1} words.", "Russian",
+                Localization.instance.GetSelectedLanguage()).Replace(@"\\", @"\");
 
         if (menuRoot != null)
         {
@@ -195,6 +215,7 @@ public static class Translations
     private static string LocalizeWord(string word, string key, string language)
     {
         var localizedWord = GoogleTranslator.Instance.Translate(word, "English", language);
+        if (localizedWord.Equals("en")) return string.Empty;
         GetAll()[language][key] = localizedWord;
         return localizedWord;
     }

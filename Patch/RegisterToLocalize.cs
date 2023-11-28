@@ -1,8 +1,14 @@
-﻿namespace AutoTranslate.Patch;
+﻿using System.Reflection;
+
+namespace AutoTranslate.Patch;
 
 [HarmonyPatch]
 public class RegisterToLocalize
 {
+    public static Localization checkLocalization1_Russian;
+    public static Localization checkLocalization2;
+    public static Localization english;
+
     public static List<Piece> piecesNoName = new();
     public static List<Piece> piecesNoDescription = new();
     public static List<CookingStation> cookingStations = new();
@@ -15,34 +21,31 @@ public class RegisterToLocalize
     public static List<StatusEffect> seNoStartMessage = new();
     public static List<StatusEffect> seNoStopMessage = new();
     public static List<StatusEffect> seNoRepeatMessage = new();
-    public static Localization checkLocalization1_Russian;
-    public static Localization checkLocalization2;
-    public static Localization english;
+
+    internal static void Init()
+    {
+        english = new Localization();
+        english.SetupLanguage("English");
+
+        checkLocalization1_Russian = new Localization();
+        checkLocalization1_Russian.SetupLanguage("Russian");
+
+        checkLocalization2 = new Localization();
+        checkLocalization2.SetupLanguage("Swedish");
+    }
 
     [HarmonyPatch(typeof(ZNetScene), nameof(ZNetScene.Awake))] [HarmonyPostfix] [HarmonyWrapSafe]
     [HarmonyPriority(int.MinValue)]
     private static void Patch()
     {
         Translations.LoadFromFile();
-        Translations.originalKeys.Clear();
 
-        if (english == null)
-        {
-            english = new Localization();
-            english.SetupLanguage("English");
-        }
+        var onlyEnglishKey = Localization.instance.m_translations.Where(x => OnlyEnglish(x.Key));
+        var selectedLanguage = Localization.instance.GetSelectedLanguage();
+        foreach (var piece in onlyEnglishKey) Translations.Add(piece.Key, piece.Value, "");
 
-        if (checkLocalization1_Russian == null)
-        {
-            checkLocalization1_Russian = new Localization();
-            checkLocalization1_Russian.SetupLanguage("Russian");
-        }
-
-        if (checkLocalization2 == null)
-        {
-            checkLocalization2 = new Localization();
-            checkLocalization2.SetupLanguage("Swedish");
-        }
+        onlyEnglishKey = english.m_translations.Where(x => OnlyEnglish(x.Key));
+        foreach (var piece in onlyEnglishKey) Translations.Add(piece.Key, piece.Value, "");
 
         piecesNoName = ZNetScene.instance.m_prefabs.Select(x => x.GetComponent<Piece>())
             .Where(x => x != null).Where(NoLocalization<Piece>()).ToList();
@@ -87,7 +90,7 @@ public class RegisterToLocalize
         foreach (var effect in seNoTooltip)
             Translations.Add(Translations.CreateKey(effect) + "_tooltip", GetOrigName(effect.m_tooltip, effect.name),
                 effect.m_tooltip);
-        foreach (var effect in seNoStartMessage)
+        foreach (var effect in seNoStartMessage) 
             Translations.Add(Translations.CreateKey(effect) + "_startMessage",
                 GetOrigName(effect.m_startMessage, effect.name), effect.m_startMessage);
         foreach (var effect in seNoStopMessage)
@@ -97,49 +100,17 @@ public class RegisterToLocalize
             Translations.Add(Translations.CreateKey(effect) + "_repeatMessage",
                 GetOrigName(effect.m_repeatMessage, effect.name), effect.m_repeatMessage);
 
+
         Translations.Update();
     }
 
-    public static Func<T, bool> NoLocalization<T>(bool isDescription = false) where T : Component
-    {
-        return x =>
-            StrNoLocalization(GetName(x, isDescription));
-    }
-
-    public static bool StrNoLocalization(string name)
-    {
-        if (!name.IsGood()) return false;
-        if (string.Empty.Equals(Localization.instance.Localize(name))) return true;
-        var noLocKey = !name.Contains('$');
-        if (noLocKey) return true;
-        var onlyEnglish = OnlyEnglish(name);
-        
-        return noLocKey || onlyEnglish;
-    }
-
-    public static bool OnlyEnglish(string name)
-    {
-        if(!name.Contains('$')) return false;
-        var keyNoDollar = name.Replace("$", "");
-        bool onlyEnglish = false;
-        if (!Localization.instance.m_translations.ContainsKey(keyNoDollar))
+    public static Func<T, bool> NoLocalization<T>(bool isDescription = false) where T : Component =>
+        x =>
         {
-            onlyEnglish = true;
-        } else
-        {
-            var selectedLanguage = Localization.instance.GetSelectedLanguage();
-            var selectedTranslation = Localization.instance.Localize(name).ToLower();
-            if (
-                (selectedLanguage != "Russian"
-                 && selectedTranslation.Equals(checkLocalization1_Russian.Localize(name).ToLower()))
-                ||
-                (selectedLanguage != "Swedish"
-                 && selectedTranslation.Equals(checkLocalization2.Localize(name).ToLower()))
-            ) onlyEnglish = true;
-        }
-
-        return onlyEnglish;
-    }
+            var name = GetName(x, isDescription);
+            if (!name.IsGood()) return false;
+            return !name.Contains("$");
+        };
 
     public static string GetName(Component x, bool isDescription = false)
     {
@@ -154,6 +125,42 @@ public class RegisterToLocalize
                 : itemDrop.m_itemData.m_shared.m_name,
             _ => string.Empty
         };
+    }
+
+    public static bool StrNoLocalization(string name)
+    {
+        if (!name.IsGood()) return false;
+        if (string.Empty.Equals(Localization.instance.Localize(name))) return true;
+        var noLocKey = !name.Contains('$');
+        if (noLocKey) return true;
+        var onlyEnglish = OnlyEnglish(name);
+
+        return noLocKey || onlyEnglish;
+    }
+
+    public static bool OnlyEnglish(string key)
+    {
+        if (key.Count(x => x == '$') > 1) return false;
+        key = key.Replace("$", "");
+        if (key.StartsWith("button_") || key.StartsWith("interface_") || key.StartsWith("OLD")
+            || key.StartsWith("language_")) return false;
+        var keyWithDola = "";
+        keyWithDola = $"${key}";
+        if (checkLocalization1_Russian == null) return false;
+        if (!english.m_translations.ContainsKey(key)) return true;
+
+        var selectedLanguage = Localization.instance.GetSelectedLanguage();
+        var selectedTranslation = Localization.instance.Localize(keyWithDola).ToLower();
+        if (
+            (selectedLanguage != "Russian"
+             && selectedTranslation.Equals(checkLocalization1_Russian.Localize(keyWithDola).ToLower()))
+            ||
+            (selectedLanguage != "Swedish"
+             && selectedTranslation.Equals(checkLocalization2.Localize(keyWithDola).ToLower()))
+        ) return true;
+
+
+        return false;
     }
 
     private static string GetOrigName<T>(T x, bool isDescription = false) where T : Component

@@ -57,7 +57,7 @@ public class RegisterCustomHover
         {
             string originalKey = data.field.GetValue(data.component)?.ToString();
             Translations.Add($"{Translations.CreateKey(data.prefab)}__field_{data.field.Name}",
-                GetOrigName(originalKey, data.prefab.GetPrefabName()), originalKey);
+                GetOrigName(originalKey, data.prefab.GetPrefabName()), "");
         }
     }
 
@@ -92,7 +92,7 @@ public class RegisterCustomHover
             {
                 var value = x.GetValue(hoverable);
                 if (value is null) return false;
-                return RegisterToLocalize.OnlyEnglish(value?.ToString());
+                return RegisterToLocalize.OnlyEnglish(value.ToString());
             })
             .ToArray();
     }
@@ -120,7 +120,7 @@ public class RegisterCustomHover
         public override string ToString()
         {
             return
-                $"Component: '{component?.ToString() ?? "null"}', "
+                $"Component: '{component.ToString() ?? "null"}', "
                 + $"Prefab: '{prefab?.name ?? "null"}', "
                 + $"Field: '{field?.Name ?? "null"}'";
         }

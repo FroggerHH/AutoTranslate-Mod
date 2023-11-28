@@ -113,7 +113,6 @@ public class GoogleTranslator
                 TranslationSpeechUrl = string.Format(
                     "https://translate.googleapis.com/translate_tts?ie=UTF-8&q={0}&tl={1}&total=1&idx=0&textlen={2}&client=gtx",
                     Uri.EscapeDataString(translation), LanguageEnumToIdentifier(targetLanguage),
-                    // HttpUtility.UrlEncode(translation), LanguageEnumToIdentifier(targetLanguage),
                     translation.Length);
             }
         }

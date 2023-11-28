@@ -1,4 +1,5 @@
-﻿using BepInEx.Configuration;
+﻿using AutoTranslate.Patch;
+using BepInEx.Configuration;
 
 namespace AutoTranslate;
 
@@ -7,7 +8,7 @@ public class Plugin : BaseUnityPlugin
 {
     private const string
         ModName = "AutoTranslate",
-        ModVersion = "1.2.2",
+        ModVersion = "1.3.1",
         ModAuthor = "Frogger",
         ModGUID = $"com.{ModAuthor}.{ModName}";
 
@@ -20,6 +21,7 @@ public class Plugin : BaseUnityPlugin
     {
         CreateMod(this, ModName, ModAuthor, ModVersion, ModGUID);
         showTranslationLogs = config("Debug", "ShowTranslationLogs", false, "Show how translations are generated.");
+        RegisterToLocalize.Init();
 
         Localization.OnLanguageChange += () =>
         {
@@ -33,7 +35,7 @@ public class Plugin : BaseUnityPlugin
                 DebugError($"Translation error: {e.Message}");
             }
 
-            Translations.menuRoot.SetActive(false);
+            Translations.menuRoot?.SetActive(false);
         };
     }
 }
